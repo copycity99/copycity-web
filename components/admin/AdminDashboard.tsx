@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Trash2, Image as ImageIcon, Save, BarChart3, Info, Phone, Settings, Tag, MessageSquare, BookOpen, MapPin, Mail, Clock, ChevronUp, ChevronDown, MoveVertical, ShieldCheck, AlertCircle, Download, Upload, Database } from 'lucide-react';
-import { ServiceItem, NewsItem, FaqItem, SiteConfig, AboutInfo, ContactInfo, AnalyticsData } from '../../types';
+import { LogOut, Plus, Trash2, Image as ImageIcon, BarChart3, Info, Phone, Settings, Tag, MessageSquare, BookOpen, ChevronUp, ChevronDown, ShieldCheck } from 'lucide-react';
+import { ServiceItem, NewsItem, FaqItem, SiteConfig, AboutInfo, ContactInfo } from '../../types';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -61,7 +61,8 @@ export const AdminDashboard: React.FC = () => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const MAX_WIDTH = isLogo ? 400 : 800; 
+          // 更激進的 Logo 壓縮以節省空間
+          const MAX_WIDTH = isLogo ? 300 : 800; 
           if (width > MAX_WIDTH) {
             height = (MAX_WIDTH / width) * height;
             width = MAX_WIDTH;
@@ -70,7 +71,7 @@ export const AdminDashboard: React.FC = () => {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           if (ctx) ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL(isLogo ? 'image/png' : 'image/jpeg', 0.6)); 
+          resolve(canvas.toDataURL(isLogo ? 'image/png' : 'image/jpeg', 0.5)); 
         };
       };
       reader.onerror = (e) => reject(e);
@@ -84,7 +85,7 @@ export const AdminDashboard: React.FC = () => {
       callback(compressed);
       markAsChanged();
     } catch (e) {
-      alert("圖片處理失敗");
+      alert("圖片處理失敗，請換一張試試看。");
     }
   };
 
@@ -102,8 +103,7 @@ export const AdminDashboard: React.FC = () => {
         setPasswordError('');
         setTimeout(() => setShowSaveSuccess(false), 3000);
       } catch (e) {
-        console.error(e);
-        alert('儲存失敗！可能是因為圖片資料量過大。請嘗試減少圖片數量或壓縮圖片。');
+        alert('儲存失敗！可能是圖片過多或單張圖片過大。請嘗試減少營業項目圖片。');
       } finally {
         setIsSaving(false);
       }
@@ -282,7 +282,7 @@ export const AdminDashboard: React.FC = () => {
                       {localLogo ? <img src={localLogo} className="max-w-full max-h-full object-contain" /> : <ImageIcon size={32} className="text-gray-300" />}
                       <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer text-white text-[10px] font-bold transition-opacity">上傳新 LOGO<input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], true, (b) => { setLocalLogo(b); markAsChanged(); })}/></label>
                     </div>
-                    <p className="text-xs text-navy-500">建議使用去背 PNG 圖檔。<br/>上傳後 Logo 在前台深色背景會自動轉為白色。</p>
+                    <p className="text-xs text-navy-500">建議使用去背 PNG 圖檔。<br/>系統會自動壓縮以節省空間。</p>
                   </div>
                 </div>
 

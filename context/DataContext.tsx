@@ -36,7 +36,7 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const PK = 'COPYCITY_FINAL_V1_';
+const PK = 'COPYCITY_FINAL_V2_'; // 升級版本號以強制清除舊的損毀資料
 const STORAGE_KEYS = {
   SERVICES: PK + 'SERVICES',
   NEWS: PK + 'NEWS',
@@ -54,8 +54,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const stored = localStorage.getItem(key);
       if (!stored || stored === 'undefined' || stored === 'null') return defaultValue;
       
-      // Logo is raw base64 string, not JSON
-      if (key === STORAGE_KEYS.LOGO && !stored.startsWith('{') && !stored.startsWith('[')) {
+      // Logo 判斷：如果是 base64 直接返回
+      if (key === STORAGE_KEYS.LOGO && stored.includes('data:image')) {
         return stored;
       }
 
@@ -63,11 +63,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(stored);
         return parsed || defaultValue;
       } catch (e) {
-        // Fallback for raw strings or corrupted data
-        return (stored.length > 100 && stored.startsWith('data:image')) ? stored : defaultValue;
+        // 如果 JSON 解析失敗（資料損毀），嘗試判斷是否為 base64，否則返回預設值
+        return (stored.startsWith('data:image')) ? stored : defaultValue;
       }
     } catch (e) { 
-      console.error("Storage Load Error:", e);
       return defaultValue; 
     }
   };
@@ -78,7 +77,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(key, stringValue); 
     } catch (e) {
       if (e instanceof Error && e.name === 'QuotaExceededError') {
-        alert('儲存空間已滿！這通常是因為圖片過多或解析度太高。請嘗試刪除部分圖片或縮小圖檔後再儲存。');
+        alert('儲存空間不足：可能是圖片尺寸太大，請縮小圖片後再嘗試。');
       }
     }
   };
@@ -122,7 +121,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetData = () => { 
-    if (confirm('這將清除所有自訂內容並重置網站。確定嗎？')) { 
+    if (confirm('確定要清除所有修改並重置網站嗎？')) { 
       Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
       window.location.reload(); 
     } 

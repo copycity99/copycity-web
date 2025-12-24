@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Printer } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
   const { logo, trackNavClick } = useData();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,6 +18,11 @@ export const Navbar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 當 logo 路徑改變時，重置錯誤狀態
+  useEffect(() => {
+    setLogoError(false);
+  }, [logo]);
 
   const navLinks = [
     { name: '最新消息', id: 'news', analyticsId: 'news' },
@@ -27,45 +36,62 @@ export const Navbar: React.FC = () => {
     setIsMenuOpen(false); 
     trackNavClick(link.analyticsId as any);
 
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const element = document.getElementById(link.id);
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }
+      }, 100);
+      return;
+    }
+
     const element = document.getElementById(link.id);
     if (element) {
       const headerOffset = 80;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
   };
 
-  const isTransparent = !isScrolled && !isMenuOpen;
+  const isTransparent = !isScrolled && !isMenuOpen && location.pathname === '/';
 
   return (
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled || isMenuOpen ? 'bg-white/95 backdrop-blur-md shadow-sm py-4 border-b border-gray-100' : 'bg-transparent py-6'
+        !isTransparent ? 'bg-white/95 backdrop-blur-md shadow-sm py-4 border-b border-gray-100' : 'bg-transparent py-6'
       }`}
     >
       <div className="container mx-auto px-6 flex justify-between items-center">
         {/* Logo Section */}
         <button 
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => {
+            if (location.pathname !== '/') {
+              navigate('/');
+            } else {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
           className="flex items-center gap-2 transition-transform active:scale-95 focus:outline-none"
         >
-          {logo ? (
+          {/* 如果有 logo 且沒有載入錯誤，則顯示圖片；否則顯示文字版 LOGO */}
+          {logo && !logoError ? (
             <img 
               src={logo} 
               alt="影城數位印刷" 
+              onError={() => setLogoError(true)} 
               className="h-10 md:h-12 w-auto object-contain transition-all duration-500"
               style={{ 
-                // 強制將任何深色 logo 變為純白 (brightness 0 變黑，invert 1 變白)
-                filter: isTransparent ? 'brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.3))' : 'none' 
+                filter: isTransparent ? 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))' : 'none' 
               }}
             />
           ) : (
-            <div className={`flex items-center gap-2 text-2xl font-bold font-display ${isTransparent ? 'text-white' : 'text-navy-900'}`}>
+            <div className={`flex items-center gap-2 text-xl md:text-2xl font-bold font-display ${isTransparent ? 'text-white' : 'text-navy-900'}`}>
               <div className="p-2 rounded-lg bg-brand-500 text-white shadow-lg">
                 <Printer size={20} />
               </div>
@@ -95,7 +121,7 @@ export const Navbar: React.FC = () => {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? (
-            <X className="text-navy-900" />
+            <X className="text-navy-900" size={28} />
           ) : (
             <Menu className={!isTransparent ? 'text-navy-900' : 'text-white'} size={28} />
           )}

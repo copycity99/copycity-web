@@ -4,13 +4,16 @@ export interface ServiceItem {
   id: string;
   title: string;
   description: string;
+  fullContent?: string; // 詳細介紹內容
   image: string;
   icon?: LucideIcon;
 }
 
 export interface FaqItem {
+  id: string; // 新增 ID 以支援轉跳
   question: string;
   answer: string;
+  fullContent?: string; // 詳細解答內容
 }
 
 export interface NewsItem {
@@ -19,13 +22,13 @@ export interface NewsItem {
   title: string;
   content: string;
   tag: '公告' | '優惠' | '新知';
-  image?: string; // New: Optional image for news
+  image?: string;
 }
 
 export interface AboutInfo {
   title: string;
   subtitle: string;
-  content: string[]; // Array of paragraphs
+  content: string[];
   image: string;
 }
 
@@ -41,7 +44,7 @@ export interface SiteConfig {
   heroButtonText: string;
   lineUrl: string;
   fileTransferUrl: string; 
-  adminPassword?: string; // Added: Optional field for admin password
+  adminPassword?: string;
 }
 
 export interface AnalyticsData {

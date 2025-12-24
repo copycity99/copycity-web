@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Trash2, Image as ImageIcon, BarChart3, Info, Phone, Settings, Tag, MessageSquare, BookOpen, ChevronUp, ChevronDown, ShieldCheck } from 'lucide-react';
+import { LogOut, Plus, Trash2, Image as ImageIcon, BarChart3, Info, Phone, Settings, Tag, MessageSquare, BookOpen, ChevronUp, ChevronDown, ShieldCheck, FileText } from 'lucide-react';
 import { ServiceItem, NewsItem, FaqItem, SiteConfig, AboutInfo, ContactInfo } from '../../types';
 
 export const AdminDashboard: React.FC = () => {
@@ -61,8 +61,8 @@ export const AdminDashboard: React.FC = () => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          // 更激進的 Logo 壓縮以節省空間
-          const MAX_WIDTH = isLogo ? 300 : 800; 
+          // 強制大幅壓縮
+          const MAX_WIDTH = isLogo ? 400 : 800; 
           if (width > MAX_WIDTH) {
             height = (MAX_WIDTH / width) * height;
             width = MAX_WIDTH;
@@ -70,8 +70,13 @@ export const AdminDashboard: React.FC = () => {
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          if (ctx) ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL(isLogo ? 'image/png' : 'image/jpeg', 0.5)); 
+          if (ctx) {
+            ctx.fillStyle = "white"; // 防止透明背景變黑
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+          }
+          // 使用較低的質量 (0.4) 確保能存入 localStorage
+          resolve(canvas.toDataURL('image/jpeg', 0.4)); 
         };
       };
       reader.onerror = (e) => reject(e);
@@ -95,6 +100,8 @@ export const AdminDashboard: React.FC = () => {
       return;
     }
     setIsSaving(true);
+    
+    // 延遲執行以顯示 Loading 狀態
     setTimeout(() => {
       try {
         saveAllData(localServices, localNews, localFaq, localLogo, localConfig, localAbout, localContact);
@@ -102,8 +109,8 @@ export const AdminDashboard: React.FC = () => {
         setShowSaveSuccess(true);
         setPasswordError('');
         setTimeout(() => setShowSaveSuccess(false), 3000);
-      } catch (e) {
-        alert('儲存失敗！可能是圖片過多或單張圖片過大。請嘗試減少營業項目圖片。');
+      } catch (e: any) {
+        alert(e.message || '儲存失敗！可能是單張圖片過大。請嘗試上傳較小的圖片或縮減項目數量。');
       } finally {
         setIsSaving(false);
       }
@@ -181,21 +188,42 @@ export const AdminDashboard: React.FC = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center pb-4 border-b">
                 <h2 className="text-2xl font-black">營業項目管理</h2>
-                <button onClick={() => { setLocalServices([{ id: Date.now().toString(), title: '新項目', description: '描述', image: '' }, ...localServices]); markAsChanged(); }} className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus size={16}/> 新增項目</button>
+                <button onClick={() => { setLocalServices([{ id: Date.now().toString(), title: '新項目', description: '首頁簡述', fullContent: '轉跳後的詳細文案內容...', image: '' }, ...localServices]); markAsChanged(); }} className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus size={16}/> 新增項目</button>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-8">
                 {localServices.map((service, index) => (
-                  <div key={service.id} className="border p-6 rounded-2xl flex items-start gap-6 bg-gray-50 hover:bg-white transition-all shadow-sm">
-                    <ReorderButtons index={index} total={localServices.length} onMove={(dir) => moveItem(localServices, setLocalServices, index, dir)} />
-                    <div className="w-32 h-32 shrink-0 bg-white border rounded-xl overflow-hidden relative group">
-                        {service.image ? <img src={service.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400"><ImageIcon size={32}/></div>}
-                        <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer text-white text-xs gap-1 transition-opacity"><ImageIcon size={20} /><span>換圖</span><input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], false, (b) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, image: b} : s)); markAsChanged(); })}/></label>
+                  <div key={service.id} className="border p-6 rounded-2xl flex flex-col gap-6 bg-gray-50 hover:bg-white transition-all shadow-sm">
+                    <div className="flex items-start gap-6">
+                        <ReorderButtons index={index} total={localServices.length} onMove={(dir) => moveItem(localServices, setLocalServices, index, dir)} />
+                        <div className="w-32 h-32 shrink-0 bg-white border rounded-xl overflow-hidden relative group">
+                            {service.image ? <img src={service.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400"><ImageIcon size={32}/></div>}
+                            <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer text-white text-xs gap-1 transition-opacity"><ImageIcon size={20} /><span>換圖</span><input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], false, (b) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, image: b} : s)); markAsChanged(); })}/></label>
+                        </div>
+                        <div className="flex-grow space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest mb-1 block">項目標題</label>
+                                <input type="text" value={service.title} onChange={(e) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, title: e.target.value} : s)); markAsChanged(); }} className="w-full p-2 bg-white border rounded-lg font-bold text-lg outline-none focus:border-brand-500"/>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest mb-1 block">首頁簡短描述 (限兩行)</label>
+                                <textarea value={service.description} onChange={(e) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, description: e.target.value} : s)); markAsChanged(); }} className="w-full p-2 bg-white border rounded-lg outline-none text-sm text-gray-500 leading-relaxed focus:border-brand-500" rows={2}/>
+                            </div>
+                        </div>
+                        <button onClick={() => { if (confirm('確定刪除此項目？')) { setLocalServices(localServices.filter(s => s.id !== service.id)); markAsChanged(); } }} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20}/></button>
                     </div>
-                    <div className="flex-grow space-y-3">
-                        <input type="text" value={service.title} onChange={(e) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, title: e.target.value} : s)); markAsChanged(); }} className="w-full p-1 bg-transparent border-b font-bold text-lg outline-none border-gray-200"/>
-                        <textarea value={service.description} onChange={(e) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, description: e.target.value} : s)); markAsChanged(); }} className="w-full p-1 bg-transparent outline-none text-sm text-gray-500 leading-relaxed" rows={2}/>
+                    {/* 詳細內容編輯區 */}
+                    <div className="pt-4 border-t border-gray-200">
+                        <label className="text-[10px] font-black text-brand-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <FileText size={14} /> 轉跳詳情頁的完整文案內容
+                        </label>
+                        <textarea 
+                            value={service.fullContent || ''} 
+                            placeholder="請在此輸入跳轉後顯示的詳細介紹文案..."
+                            onChange={(e) => { setLocalServices(localServices.map(s => s.id === service.id ? {...s, fullContent: e.target.value} : s)); markAsChanged(); }} 
+                            className="w-full p-4 bg-white border rounded-xl outline-none text-sm text-gray-700 leading-loose focus:ring-2 focus:ring-brand-100 focus:border-brand-400 transition-all" 
+                            rows={6}
+                        />
                     </div>
-                    <button onClick={() => { if (confirm('刪除？')) { setLocalServices(localServices.filter(s => s.id !== service.id)); markAsChanged(); } }} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20}/></button>
                   </div>
                 ))}
               </div>
@@ -206,17 +234,41 @@ export const AdminDashboard: React.FC = () => {
              <div className="space-y-6">
                 <div className="flex justify-between items-center pb-4 border-b">
                     <h2 className="text-2xl font-black">最新消息管理</h2>
-                    <button onClick={() => { setLocalNews([{ id: Date.now().toString(), date: new Date().toLocaleDateString(), title: '新消息', content: '內容', tag: '公告' }, ...localNews]); markAsChanged(); }} className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus size={16}/> 發佈新消息</button>
+                    <button onClick={() => { setLocalNews([{ id: Date.now().toString(), date: new Date().toLocaleDateString(), title: '新消息標題', content: '這裡輸入完整的詳細內文...', tag: '公告', image: '' }, ...localNews]); markAsChanged(); }} className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus size={16}/> 發佈新消息</button>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-8">
                     {localNews.map((item, index) => (
-                        <div key={item.id} className="p-6 bg-gray-50 rounded-2xl border flex items-start gap-6 shadow-sm">
-                            <ReorderButtons index={index} total={localNews.length} onMove={(dir) => moveItem(localNews, setLocalNews, index, dir)} />
-                            <div className="flex-grow space-y-2">
-                                <input type="text" value={item.title} onChange={(e) => { setLocalNews(localNews.map(n => n.id === item.id ? {...n, title: e.target.value} : n)); markAsChanged(); }} className="w-full font-bold bg-transparent outline-none border-b border-gray-200 pb-1"/>
-                                <textarea value={item.content} onChange={(e) => { setLocalNews(localNews.map(n => n.id === item.id ? {...n, content: e.target.value} : n)); markAsChanged(); }} className="w-full text-sm text-gray-500 bg-transparent outline-none" rows={2}/>
+                        <div key={item.id} className="p-6 bg-gray-50 rounded-2xl border flex flex-col gap-6 shadow-sm">
+                            <div className="flex items-start gap-6">
+                                <ReorderButtons index={index} total={localNews.length} onMove={(dir) => moveItem(localNews, setLocalNews, index, dir)} />
+                                
+                                <div className="w-40 aspect-video shrink-0 bg-white border rounded-xl overflow-hidden relative group">
+                                    {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center text-gray-400 text-[10px]"><ImageIcon size={24}/>封面圖</div>}
+                                    <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer text-white text-[10px] gap-1 transition-opacity"><ImageIcon size={16} /><span>更換消息圖片</span><input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], false, (b) => { setLocalNews(localNews.map(n => n.id === item.id ? {...n, image: b} : n)); markAsChanged(); })}/></label>
+                                </div>
+
+                                <div className="flex-grow space-y-4">
+                                    <div className="flex gap-4">
+                                        <div className="flex-grow">
+                                            <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest mb-1 block">消息標題</label>
+                                            <input type="text" value={item.title} onChange={(e) => { setLocalNews(localNews.map(n => n.id === item.id ? {...n, title: e.target.value} : n)); markAsChanged(); }} className="w-full font-bold bg-white border rounded-lg p-2 outline-none focus:border-brand-500"/>
+                                        </div>
+                                        <div className="w-32">
+                                            <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest mb-1 block">分類標籤</label>
+                                            <select value={item.tag} onChange={(e) => { setLocalNews(localNews.map(n => n.id === item.id ? {...n, tag: e.target.value as any} : n)); markAsChanged(); }} className="w-full bg-white border rounded-lg p-2 text-sm outline-none">
+                                                <option value="公告">公告</option>
+                                                <option value="優惠">優惠</option>
+                                                <option value="新知">新知</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-brand-500 uppercase tracking-widest mb-1 block">詳細消息內文</label>
+                                        <textarea value={item.content} onChange={(e) => { setLocalNews(localNews.map(n => n.id === item.id ? {...n, content: e.target.value} : n)); markAsChanged(); }} className="w-full text-sm text-gray-700 bg-white border rounded-lg p-3 outline-none leading-loose focus:border-brand-500" rows={5}/>
+                                    </div>
+                                </div>
+                                <button onClick={() => { if (confirm('確定刪除這則消息？')) { setLocalNews(localNews.filter(n => n.id !== item.id)); markAsChanged(); } }} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20}/></button>
                             </div>
-                            <button onClick={() => { if (confirm('刪除？')) { setLocalNews(localNews.filter(n => n.id !== item.id)); markAsChanged(); } }} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20}/></button>
                         </div>
                     ))}
                 </div>
@@ -227,17 +279,29 @@ export const AdminDashboard: React.FC = () => {
              <div className="space-y-6">
                 <div className="flex justify-between items-center pb-4 border-b">
                     <h2 className="text-2xl font-black">常見問題管理</h2>
-                    <button onClick={() => { setLocalFaq([...localFaq, { question: '新問題', answer: '新回答' }]); markAsChanged(); }} className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus size={16}/> 新增問答</button>
+                    <button onClick={() => { setLocalFaq([...localFaq, { id: Date.now().toString(), question: '問題名稱', answer: '首頁列表顯示的簡短回答', fullContent: '轉跳詳情頁顯示的詳細解答說明...' }]); markAsChanged(); }} className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1"><Plus size={16}/> 新增問答</button>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {localFaq.map((item, index) => (
-                        <div key={index} className="p-6 bg-gray-50 rounded-2xl border flex items-start gap-6 shadow-sm">
-                            <ReorderButtons index={index} total={localFaq.length} onMove={(dir) => moveItem(localFaq, setLocalFaq, index, dir)} />
-                            <div className="flex-grow space-y-4">
-                                <input type="text" value={item.question} onChange={(e) => { const next = [...localFaq]; next[index].question = e.target.value; setLocalFaq(next); markAsChanged(); }} className="w-full p-2 bg-transparent border-b border-gray-200 font-bold outline-none"/>
-                                <textarea value={item.answer} onChange={(e) => { const next = [...localFaq]; next[index].answer = e.target.value; setLocalFaq(next); markAsChanged(); }} className="w-full p-2 bg-transparent outline-none text-sm text-gray-500" rows={2}/>
+                        <div key={item.id || index} className="p-6 bg-gray-50 rounded-2xl border flex flex-col gap-4 shadow-sm">
+                            <div className="flex items-start gap-6">
+                                <ReorderButtons index={index} total={localFaq.length} onMove={(dir) => moveItem(localFaq, setLocalFaq, index, dir)} />
+                                <div className="flex-grow space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest mb-1 block">問題 (Question)</label>
+                                        <input type="text" value={item.question} onChange={(e) => { const next = [...localFaq]; next[index].question = e.target.value; setLocalFaq(next); markAsChanged(); }} className="w-full p-2 bg-white border rounded-lg font-bold outline-none focus:border-brand-500"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-navy-400 uppercase tracking-widest mb-1 block">簡短回答 (首頁列表用)</label>
+                                        <textarea value={item.answer} onChange={(e) => { const next = [...localFaq]; next[index].answer = e.target.value; setLocalFaq(next); markAsChanged(); }} className="w-full p-2 bg-white border rounded-lg outline-none text-sm text-gray-500 focus:border-brand-500" rows={2}/>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-brand-500 uppercase tracking-widest mb-1 block">詳情頁詳細解答內容</label>
+                                        <textarea value={item.fullContent || ''} placeholder="若此問題需要更長、更詳細的說明，請填寫於此..." onChange={(e) => { const next = [...localFaq]; next[index].fullContent = e.target.value; setLocalFaq(next); markAsChanged(); }} className="w-full p-3 bg-white border rounded-lg outline-none text-sm text-navy-700 leading-loose focus:border-brand-500" rows={4}/>
+                                    </div>
+                                </div>
+                                <button onClick={() => { if (confirm('確定刪除此問答？')) { setLocalFaq(localFaq.filter((_, i) => i !== index)); markAsChanged(); } }} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20}/></button>
                             </div>
-                            <button onClick={() => { if (confirm('刪除？')) { setLocalFaq(localFaq.filter((_, i) => i !== index)); markAsChanged(); } }} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20}/></button>
                         </div>
                     ))}
                 </div>
@@ -249,12 +313,12 @@ export const AdminDashboard: React.FC = () => {
                 <h2 className="text-2xl font-black pb-4 border-b">關於影城</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="space-y-6">
-                        <div><label className="block text-sm font-bold mb-2">主標題</label><input type="text" value={localAbout.title} onChange={(e) => { setLocalAbout({...localAbout, title: e.target.value}); markAsChanged(); }} className="w-full p-3 border border-gray-200 rounded-xl outline-none"/></div>
-                        <div><label className="block text-sm font-bold mb-2">內文</label><textarea value={localAbout.content.join('\n')} onChange={(e) => { setLocalAbout({...localAbout, content: e.target.value.split('\n')}); markAsChanged(); }} className="w-full p-3 border border-gray-200 rounded-xl outline-none" rows={8}/></div>
+                        <div><label className="block text-sm font-bold mb-2">主標題</label><input type="text" value={localAbout.title} onChange={(e) => { setLocalAbout({...localAbout, title: e.target.value}); markAsChanged(); }} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-brand-500"/></div>
+                        <div><label className="block text-sm font-bold mb-2">關於內文 (按 Enter 換行)</label><textarea value={localAbout.content.join('\n')} onChange={(e) => { setLocalAbout({...localAbout, content: e.target.value.split('\n')}); markAsChanged(); }} className="w-full p-3 border border-gray-200 rounded-xl outline-none leading-loose focus:border-brand-500" rows={8}/></div>
                     </div>
-                    <div><label className="block text-sm font-bold mb-2">照片</label><div className="aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden relative group">
+                    <div><label className="block text-sm font-bold mb-2">形象照</label><div className="aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden relative group">
                         <img src={localAbout.image} className="w-full h-full object-cover" />
-                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white font-bold gap-2"><ImageIcon size={24}/> 換照<input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], false, (b) => { setLocalAbout({...localAbout, image: b}); markAsChanged(); })}/></label>
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white font-bold gap-2"><ImageIcon size={24}/> 更換照片<input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], false, (b) => { setLocalAbout({...localAbout, image: b}); markAsChanged(); })}/></label>
                     </div></div>
                 </div>
              </div>
@@ -264,8 +328,8 @@ export const AdminDashboard: React.FC = () => {
              <div className="space-y-8">
                 <h2 className="text-2xl font-black pb-4 border-b">聯絡資訊</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[{ label: '地址', key: 'address' }, { label: '電話', key: 'phone' }, { label: 'Email', key: 'email' }, { label: '時間', key: 'openingHours' }].map((field) => (
-                        <div key={field.key}><label className="block text-sm font-bold mb-2">{field.label}</label><input type="text" value={(localContact as any)[field.key]} onChange={(e) => { setLocalContact({...localContact, [field.key]: e.target.value}); markAsChanged(); }} className="w-full p-3 border border-gray-200 rounded-xl outline-none"/></div>
+                    {[{ label: '門市地址', key: 'address' }, { label: '服務專線', key: 'phone' }, { label: '電子信箱', key: 'email' }, { label: '營業時間', key: 'openingHours' }].map((field) => (
+                        <div key={field.key}><label className="block text-sm font-bold mb-2">{field.label}</label><input type="text" value={(localContact as any)[field.key]} onChange={(e) => { setLocalContact({...localContact, [field.key]: e.target.value}); markAsChanged(); }} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-brand-500"/></div>
                     ))}
                 </div>
              </div>
@@ -282,19 +346,19 @@ export const AdminDashboard: React.FC = () => {
                       {localLogo ? <img src={localLogo} className="max-w-full max-h-full object-contain" /> : <ImageIcon size={32} className="text-gray-300" />}
                       <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer text-white text-[10px] font-bold transition-opacity">上傳新 LOGO<input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0], true, (b) => { setLocalLogo(b); markAsChanged(); })}/></label>
                     </div>
-                    <p className="text-xs text-navy-500">建議使用去背 PNG 圖檔。<br/>系統會自動壓縮以節省空間。</p>
+                    <p className="text-xs text-navy-500">建議使用背景透明之 JPG 或壓縮過的圖檔。<br/>寬度建議 500px 以內。<br/>系統會自動執行二度壓縮以維護網站效能。</p>
                   </div>
                 </div>
 
                 <div className="bg-red-50 p-6 rounded-3xl border border-red-100 space-y-4">
-                    <h3 className="font-bold text-red-900 flex items-center gap-2"><ShieldCheck size={20} /> 修改管理密碼</h3>
+                    <h3 className="font-bold text-red-900 flex items-center gap-2"><ShieldCheck size={20} /> 修改後台登入密碼</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2"><label className="block text-sm font-bold text-red-700">新密碼</label><input type="text" value={localConfig.adminPassword} onChange={(e) => { setLocalConfig({...localConfig, adminPassword: e.target.value}); markAsChanged(); }} className="w-full p-3 border border-red-200 rounded-xl outline-none"/></div>
-                        <div className="space-y-2"><label className="block text-sm font-bold text-red-700">舊密碼驗證</label><input type="password" value={currentPasswordConfirm} onChange={(e) => { setCurrentPasswordConfirm(e.target.value); markAsChanged(); }} className="w-full p-3 border border-red-200 rounded-xl outline-none" placeholder="確認舊密碼"/></div>
+                        <div className="space-y-2"><label className="block text-sm font-bold text-red-700">設定新密碼</label><input type="text" value={localConfig.adminPassword} onChange={(e) => { setLocalConfig({...localConfig, adminPassword: e.target.value}); markAsChanged(); }} className="w-full p-3 border border-red-200 rounded-xl outline-none focus:border-red-500"/></div>
+                        <div className="space-y-2"><label className="block text-sm font-bold text-red-700">驗證目前密碼 (存檔時驗證)</label><input type="password" value={currentPasswordConfirm} onChange={(e) => { setCurrentPasswordConfirm(e.target.value); markAsChanged(); }} className="w-full p-3 border border-red-200 rounded-xl outline-none focus:border-red-500" placeholder="請輸入目前的密碼"/></div>
                     </div>
                 </div>
                 <div className="flex justify-between items-center pt-10">
-                   <button onClick={() => resetData()} className="text-xs text-red-400 hover:text-red-500">重置網站為初始值</button>
+                   <button onClick={() => resetData()} className="text-xs text-red-400 hover:text-red-500">重置網站內容為初始值 (慎用！)</button>
                 </div>
              </div>
           )}

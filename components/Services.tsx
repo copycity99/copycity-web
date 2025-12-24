@@ -2,9 +2,11 @@ import React from 'react';
 import { SectionTitle } from './SectionTitle';
 import { useData } from '../context/DataContext';
 import { ArrowUpRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const Services: React.FC = () => {
   const { services } = useData();
+  const navigate = useNavigate();
 
   return (
     <section id="services" className="py-24 relative overflow-hidden bg-white">
@@ -18,7 +20,8 @@ export const Services: React.FC = () => {
           {services.map((service) => (
             <div 
               key={service.id} 
-              className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-brand-500/10 transition-all duration-300 flex flex-col relative h-full hover:-translate-y-2"
+              onClick={() => navigate(`/service/${service.id}`)}
+              className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-brand-500/10 transition-all duration-300 flex flex-col relative h-full hover:-translate-y-2 cursor-pointer"
             >
               {/* Image Area */}
               <div className="relative h-56 overflow-hidden bg-gray-100">
@@ -43,12 +46,12 @@ export const Services: React.FC = () => {
                     </h3>
                 </div>
                 
-                <p className="text-navy-500 leading-relaxed text-sm flex-grow">
+                <p className="text-navy-500 leading-relaxed text-sm flex-grow line-clamp-2">
                   {service.description}
                 </p>
                 
                 <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-xs font-bold text-navy-400 uppercase tracking-wider">Learn more</span>
+                    <span className="text-xs font-bold text-navy-400 uppercase tracking-wider">查看詳情內容</span>
                     <div className="bg-brand-50 p-2 rounded-full text-brand-500 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                         <ArrowUpRight size={18} />
                     </div>

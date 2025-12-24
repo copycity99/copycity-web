@@ -19,7 +19,6 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 當 logo 路徑改變時，重置錯誤狀態
   useEffect(() => {
     setLogoError(false);
   }, [logo]);
@@ -79,15 +78,15 @@ export const Navbar: React.FC = () => {
           }}
           className="flex items-center gap-2 transition-transform active:scale-95 focus:outline-none"
         >
-          {/* 如果有 logo 且沒有載入錯誤，則顯示圖片；否則顯示文字版 LOGO */}
           {logo && !logoError ? (
             <img 
               src={logo} 
               alt="影城數位印刷" 
               onError={() => setLogoError(true)} 
-              className="h-10 md:h-12 w-auto object-contain transition-all duration-500"
+              className="h-10 md:h-12 w-auto object-contain transition-all duration-300"
               style={{ 
-                filter: isTransparent ? 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))' : 'none' 
+                /* 關鍵魔法：當導覽列透明(深底)時，將深色 Logo 反相為白色 */
+                filter: isTransparent ? 'brightness(0) invert(1)' : 'none' 
               }}
             />
           ) : (
